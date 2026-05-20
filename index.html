@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CodexPy — Hi-fi design</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app/tokens.css">
+<style>
+  body { padding: 0; margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg); }
+  .wrap { max-width: 880px; padding: 48px 32px; }
+  .logo { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; font-size: 20px; }
+  .logo .mark { width: 30px; height: 30px; border-radius: 8px; background: var(--ink); color: var(--py-yellow); display: grid; place-items: center; font-family: var(--font-mono); font-weight: 700; font-size: 15px; }
+  .logo .py { font-family: var(--font-mono); background: var(--py-yellow); color: var(--py-blue-d); padding: 1px 7px; border-radius: 6px; }
+  h1 { font-size: 60px; line-height: 1.05; letter-spacing: -0.025em; margin: 28px 0 14px; }
+  p.lede { font-size: 19px; line-height: 1.55; color: var(--muted); margin: 0 0 36px; max-width: 600px; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 36px; }
+  .card-large {
+    padding: 28px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; text-decoration: none; color: var(--ink);
+    display: flex; flex-direction: column; gap: 12px; min-height: 220px;
+    transition: transform .2s var(--easing), box-shadow .2s var(--easing);
+  }
+  .card-large:hover { transform: translateY(-3px); box-shadow: var(--sh-3); }
+  .card-large .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .card-large h3 { font-size: 22px; margin: 0; letter-spacing: -0.015em; }
+  .card-large p { color: var(--muted); font-size: 14px; line-height: 1.55; margin: 0; flex: 1; }
+  .card-large .footer { color: var(--py-blue); font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
+  .meta { font-size: 12.5px; color: var(--muted); line-height: 1.7; }
+  .meta strong { color: var(--ink); font-weight: 500; }
+  ul { padding-left: 16px; }
+  li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="logo">
+      <span class="mark">&lt;/</span>
+      Codex<span class="py">Py</span>
+    </div>
+    <h1>Hi-fi design — capstone deliverables.</h1>
+    <p class="lede">
+      A web-based Python learning platform for school, university, and self-learners.
+      Real Three.js for the marquee 3D scenes, Lens accessibility on every screen,
+      and a full design system documented for the dev team.
+    </p>
+
+    <div class="cards">
+      <a class="card-large" href="prototype.html">
+        <span class="badge" style="background:var(--py-yellow); color:var(--py-blue-d);">Interactive prototype</span>
+        <h3>Open the prototype →</h3>
+        <p>Click-through demo of the five flagship pages plus the full admin set. Real 3D scenes (snake, orb, gauge, journey). Lens is in the bottom-right.</p>
+        <span class="footer">Landing → Dashboard → Module → Quiz → Progress · Admin · Lens</span>
+      </a>
+      <a class="card-large" href="canvas.html">
+        <span class="badge" style="background:var(--bg-sunk); color:var(--ink);">Design canvas</span>
+        <h3>Open the canvas →</h3>
+        <p>Design system, 3D motion appendix (per-scene implementation notes), Lens spec, mobile previews, traceability matrix linking each use case to a screen.</p>
+        <span class="footer">System · Motion · Lens · Mobile · Traceability</span>
+      </a>
+    </div>
+
+    <div class="meta">
+      <strong>What's in scope (this delivery)</strong>
+      <ul>
+        <li>Five flagship pages at high polish + full interactivity: Landing, Dashboard, Module Detail, Quiz, Learning Progress</li>
+        <li>Full admin set: Overview, Manage Users, Manage Modules, Manage Quizzes, Reports (new — resolves the proposal's open Reports item)</li>
+        <li>Lens — the special accessibility feature: 11 toggles, persistent across screens, documented as a per-feature spec</li>
+        <li>3D motion appendix — seven Three.js scenes with placement, trigger, polycount, format, dev note, and static fallback</li>
+        <li>Traceability matrix mapping all 17 proposal use cases to designed screens</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

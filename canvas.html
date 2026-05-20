@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1400, initial-scale=1">
+<title>CodexPy — Design canvas</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="app/tokens.css">
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<style>
+  html, body { background: #f0eee9; margin: 0; }
+  .ab { background: var(--bg); border-radius: 14px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.06); height: 100%; }
+  .ab-content { padding: 32px; }
+  .swatch { display: flex; flex-direction: column; gap: 8px; }
+  .sw {
+    display: grid; grid-template-columns: 64px 1fr auto;
+    gap: 12px; align-items: center; padding: 10px 14px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  }
+  .sw-chip { width: 64px; height: 44px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.05); }
+  .sw .name { font-size: 13px; font-weight: 500; }
+  .sw .meta { font-size: 11px; color: var(--muted); }
+  .sw .hex { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); }
+
+  .type-row {
+    display: grid; grid-template-columns: 100px 1fr;
+    gap: 16px; padding: 14px 0; align-items: baseline;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .type-row:last-child { border-bottom: none; }
+  .type-row .lbl { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+  .type-row .sample { color: var(--ink); line-height: 1.1; }
+
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+
+  .scene-card {
+    padding: 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    height: 100%;
+  }
+  .scene-card .preview {
+    background: linear-gradient(135deg, var(--bg-sunk), var(--surface-2));
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    aspect-ratio: 16 / 10;
+    display: grid;
+    place-items: center;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    text-align: center;
+    padding: 16px;
+  }
+  .scene-card .meta {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    margin-top: 14px;
+    font-size: 12px;
+  }
+  .scene-card .meta b { font-family: var(--font-mono); color: var(--ink); font-size: 11.5px; font-weight: 500; }
+  .scene-card .meta .row { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; background: var(--bg-sunk); border-radius: 6px; }
+  .scene-card .meta .row span { color: var(--muted); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+
+  .embed {
+    width: 100%; height: 100%;
+    border: 0; display: block;
+  }
+
+  /* Phone frames */
+  .phone {
+    width: 280px; height: 580px;
+    border-radius: 36px;
+    background: #1f1c18;
+    padding: 8px;
+    margin: 0 auto;
+    box-shadow: 0 24px 60px -16px rgba(0,0,0,0.25);
+    position: relative;
+  }
+  .phone .screen {
+    width: 100%; height: 100%; border-radius: 30px; background: var(--bg); overflow: hidden; position: relative;
+  }
+  .phone .notch {
+    position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+    width: 90px; height: 22px; border-radius: 999px; background: #000; z-index: 2;
+  }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- Canvas only; no prototype scripts needed here -->
+  <script type="text/babel" src="design-canvas.jsx"></script>
+
+  <script type="text/babel" data-presets="react">
+// Canvas — no hooks needed; components are pure render
+
+// ===== Style guide content components =====
+
+const Swatch = ({ name, hex, role }) => (
+  <div className="sw">
+    <div className="sw-chip" style={{ background: hex }} />
+    <div>
+      <div className="name">{name}</div>
+      <div className="meta">{role}</div>
+    </div>
+    <div className="hex">{hex}</div>
+  </div>
+);
+
+function StyleGuideColors() {
+  return (
+    <div className="ab-content">
+      <div className="eyebrow" style={{ marginBottom: 6 }}>Foundations · Color</div>
+      <h2 className="h1" style={{ marginBottom: 18 }}>Warm. Python blue. Yellow that earns its keep.</h2>
+      <p style={{ color: "var(--muted)", maxWidth: 640, marginBottom: 28 }}>
+        Cream off-white is the system's base — warmer than #FAFAFA, more inviting than pure neutral.
+        Python brand colors are present but used with restraint: blue for primary action and trust, yellow for celebration and accent.
+        All semantic colors meet WCAG AA in both light and dark themes.
+      </p>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 24 }}>
+        <div>
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Brand</div>
+          <div className="swatch">
+            <Swatch name="Python Blue" hex="#3776AB" role="Primary action, links, focus" />
+            <Swatch name="Python Blue · dark" hex="#2C5F8A" role="Hover, dense ink" />
+            <Swatch name="Python Yellow" hex="#FFD43B" role="Accent, celebration, CTAs" />
+            <Swatch name="Python Yellow · dark" hex="#F0BD0F" role="Hover, sparingly" />
+          </div>
+        </div>
+        <div>
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Neutrals</div>
+          <div className="swatch">
+            <Swatch name="Ink" hex="#1A1A1F" role="Body text, headlines" />
+            <Swatch name="Muted" hex="#6B6F76" role="Secondary text" />
+            <Swatch name="Background" hex="#FAF7F2" role="App canvas" />
+            <Swatch name="Surface" hex="#FFFFFF" role="Cards" />
+            <Swatch name="Border" hex="#ECE7DD" role="Card edges, dividers" />
+          </div>
+        </div>
+        <div>
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Semantic</div>
+          <div className="swatch">
+            <Swatch name="Success" hex="#10B981" role="Correct, complete" />
+            <Swatch name="Warning" hex="#F59E0B" role="Caution" />
+            <Swatch name="Error" hex="#EF4444" role="Wrong answer, destructive" />
+            <Swatch name="Info" hex="#3B82F6" role="Hints, blue alerts" />
+          </div>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 28 }}>
+        <div className="eyebrow" style={{ marginBottom: 10 }}>Dark mode</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10, padding: 18, background: "#0B1220", borderRadius: 12 }}>
+          {[
+            ["Background", "#0B1220"], ["Sunk", "#060A13"], ["Surface", "#111A2E"],
+            ["Elevated", "#142039"], ["Ink", "#F1EEE8"],
+          ].map(([n, h]) => (
+            <div key={n} style={{ background: h, padding: "20px 14px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)" }}>
+              <div style={{ color: "#F1EEE8", fontSize: 12, fontWeight: 500 }}>{n}</div>
+              <div style={{ color: "#8B96AB", fontFamily: "var(--font-mono)", fontSize: 11, marginTop: 4 }}>{h}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ marginTop: 28 }}>
+        <div className="eyebrow" style={{ marginBottom: 10 }}>Difficulty tags</div>
+        <div style={{ display: "flex", gap: 12 }}>
+          <span className="tag beg dot">Beginner</span>
+          <span className="tag int dot">Intermediate</span>
+          <span className="tag adv dot">Advanced</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StyleGuideType() {
+  return (
+    <div className="ab-content">
+      <div className="eyebrow" style={{ marginBottom: 6 }}>Foundations · Type</div>
+      <h2 className="h1" style={{ marginBottom: 18 }}>Geist for everything human. JetBrains Mono for everything Python.</h2>
+      <p style={{ color: "var(--muted)", maxWidth: 640, marginBottom: 28 }}>
+        Geist gives the system a confident, slightly mechanical voice — short xheight, geometric forms, modern proportions.
+        JetBrains Mono with ligatures is reserved for Python code, file names, and any small mono-flavoured chrome
+        ("Py" wordmark, timer, hex values).
+      </p>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
+        <div>
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Display & body — Geist</div>
+          <div className="type-row"><span className="lbl">60 / 1.1</span><span className="sample" style={{ fontSize: 60, fontWeight: 600, letterSpacing: "-0.025em" }}>Display</span></div>
+          <div className="type-row"><span className="lbl">48 / 1.1</span><span className="sample" style={{ fontSize: 48, fontWeight: 600, letterSpacing: "-0.02em" }}>Hero title</span></div>
+          <div className="type-row"><span className="lbl">36 / 1.1</span><span className="sample" style={{ fontSize: 36, fontWeight: 600, letterSpacing: "-0.02em" }}>H1 page title</span></div>
+          <div className="type-row"><span className="lbl">24 / 1.2</span><span className="sample" style={{ fontSize: 24, fontWeight: 600, letterSpacing: "-0.015em" }}>H2 section</span></div>
+          <div className="type-row"><span className="lbl">18 / 1.3</span><span className="sample" style={{ fontSize: 18, fontWeight: 600 }}>H3 card</span></div>
+          <div className="type-row"><span className="lbl">16 / 1.55</span><span className="sample" style={{ fontSize: 16 }}>Body — the long-form copy in lessons.</span></div>
+          <div className="type-row"><span className="lbl">14 / 1.5</span><span className="sample" style={{ fontSize: 14 }}>UI default — buttons, labels, table cells.</span></div>
+          <div className="type-row"><span className="lbl">12 / 1.4</span><span className="sample" style={{ fontSize: 12, color: "var(--muted)" }}>Meta — captions, timestamps, microcopy.</span></div>
+        </div>
+        <div>
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Code — JetBrains Mono</div>
+          <div style={{ background: "#0F1729", borderRadius: 10, padding: 18, fontFamily: "var(--font-mono)", fontSize: 14, lineHeight: 1.7 }}>
+            <span style={{ color: "#FFD43B" }}>def</span> <span style={{ color: "#5B97CB" }}>greet</span>(<span style={{ color: "#E8EAEE" }}>name: str</span>) {"-"}{"-"}{">"} <span style={{ color: "#E8EAEE" }}>None</span>:<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style={{ color: "#88D498" }}>{'"""Print a friendly hello."""'}</span><br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style={{ color: "#5B97CB" }}>print</span>(<span style={{ color: "#88D498" }}>f"Hello, {"{"}name{"}"}!"</span>)<br/>
+            <br/>
+            <span style={{ color: "#FFD43B" }}>for</span> n <span style={{ color: "#FFD43B" }}>in</span> [<span style={{ color: "#88D498" }}>"Maya"</span>, <span style={{ color: "#88D498" }}>"Yusra"</span>, <span style={{ color: "#88D498" }}>"Pri"</span>]:<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style={{ color: "#5B97CB" }}>greet</span>(n)<br/>
+            <br/>
+            <span style={{ color: "#6B7895", fontStyle: "italic" }}># Hello, Maya!</span><br/>
+            <span style={{ color: "#6B7895", fontStyle: "italic" }}># Hello, Yusra!</span><br/>
+            <span style={{ color: "#6B7895", fontStyle: "italic" }}># Hello, Pri!</span><br/>
+          </div>
+
+          <div className="eyebrow" style={{ margin: "24px 0 10px" }}>Atkinson Hyperlegible (Lens fallback)</div>
+          <div style={{ fontFamily: "'Atkinson Hyperlegible', sans-serif", fontSize: 18, lineHeight: 1.65, color: "var(--ink)" }}>
+            When Lens · Dyslexia font is on, all UI swaps to Atkinson Hyperlegible. Wider letterforms, distinguishable b/d/p/q and Il1, no kerning surprises.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StyleGuideSpace() {
+  const space = [4, 8, 12, 16, 20, 24, 32, 40, 56, 72];
+  return (
+    <div className="ab-content">
+      <div className="eyebrow" style={{ marginBottom: 6 }}>Foundations · Space, radius, shadow</div>
+      <h2 className="h1" style={{ marginBottom: 18 }}>8 px grid, with 4 for micro-spacing.</h2>
+      <p style={{ color: "var(--muted)", maxWidth: 640, marginBottom: 28 }}>
+        Components round to 10–14 px (cozy enough for learners, sharp enough to feel modern).
+        Shadows are layered low: ambient + tighter close shadow.
+      </p>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 32 }}>
+        <div>
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Space scale</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {space.map(s => (
+              <div key={s} style={{ display: "grid", gridTemplateColumns: "44px 1fr", alignItems: "center", gap: 14 }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--muted)" }}>{s}px</span>
+                <span style={{ height: 8, width: s, background: "var(--py-blue)", borderRadius: 2 }} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Radius</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {[
+              ["xs · 4", 4], ["sm · 6", 6], ["md · 10", 10],
+              ["lg · 14", 14], ["xl · 20", 20], ["2xl · 28", 28],
+              ["pill · 999", 999],
+            ].map(([l, r]) => (
+              <div key={l} style={{ display: "grid", gridTemplateColumns: "60px 1fr", gap: 14, alignItems: "center" }}>
+                <div style={{ background: "var(--surface)", border: "1px solid var(--border)", height: 36, borderRadius: r }} />
+                <span style={{ fontSize: 12.5 }}>{l}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Shadow</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {[
+              ["sh-1 · hairline", "var(--sh-1)"],
+              ["sh-2 · card", "var(--sh-2)"],
+              ["sh-3 · hover", "var(--sh-3)"],
+              ["sh-4 · modal", "var(--sh-4)"],
+              ["sh-yellow · CTA", "var(--sh-yellow)"],
+            ].map(([l, v]) => (
+              <div key={l} style={{ background: "var(--surface)", padding: 14, borderRadius: 10, boxShadow: v }}>
+                <div style={{ fontSize: 12 }}>{l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 32 }}>
+        <div className="eyebrow" style={{ marginBottom: 10 }}>Density</div>
+        <p style={{ color: "var(--muted)", fontSize: 13, marginBottom: 16 }}>Three density modes. Available via Tweaks. Affects padding, gap, and row height across the whole product.</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+          {[
+            ["Cozy", "32 / 28 / 20 / 64", "Reading-heavy. Default for school audience."],
+            ["Comfortable", "24 / 20 / 16 / 56", "Default. Used everywhere."],
+            ["Compact", "16 / 12 / 10 / 44", "Power users. Admin tables. Self-learner dense data."],
+          ].map(([name, vals, note]) => (
+            <div key={name} className="card" style={{ padding: 18 }}>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>{name}</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)", marginBottom: 6 }}>{vals}</div>
+              <div style={{ fontSize: 12, color: "var(--muted)" }}>{note}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ComponentLibrary() {
+  return (
+    <div className="ab-content">
+      <div className="eyebrow" style={{ marginBottom: 6 }}>Components</div>
+      <h2 className="h1" style={{ marginBottom: 18 }}>Reusable elements — the building blocks.</h2>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 28 }}>
+        <div>
+          <div className="eyebrow" style={{ marginBottom: 12 }}>Buttons</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
+            <button className="btn btn-primary">Primary</button>
+            <button className="btn btn-yellow">Yellow CTA</button>
+            <button className="btn btn-secondary">Secondary</button>
+            <button className="btn btn-ghost">Ghost</button>
+            <button className="btn btn-danger">Destructive</button>
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 12, alignItems: "center" }}>
+            <button className="btn btn-yellow btn-sm">Small</button>
+            <button className="btn btn-yellow">Default</button>
+            <button className="btn btn-yellow btn-lg">Large</button>
+            <button className="btn btn-secondary" disabled>Disabled</button>
+          </div>
+        </div>
+
+        <div>
+          <div className="eyebrow" style={{ marginBottom: 12 }}>Tags & badges</div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <span className="tag beg dot">Beginner</span>
+            <span className="tag int dot">Intermediate</span>
+            <span className="tag adv dot">Advanced</span>
+            <span className="tag">University</span>
+            <span className="tag">School</span>
+            <span className="tag" style={{ background: "color-mix(in oklab, var(--success) 18%, var(--surface))", color: "#047857" }}>Active</span>
+            <span className="tag" style={{ background: "color-mix(in oklab, var(--warning) 18%, var(--surface))", color: "#92400E" }}>Dormant</span>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 28 }}>
+        <div className="card" style={{ padding: 20 }}>
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Input</div>
+          <input className="input" placeholder="learner@example.com" />
+          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 6 }}>Helper text · 16px font, 10px padding</div>
+        </div>
+        <div className="card" style={{ padding: 20 }}>
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Input — focused</div>
+          <input className="input" style={{ borderColor: "var(--py-blue)", boxShadow: "0 0 0 3px color-mix(in oklab, var(--py-blue) 18%, transparent)" }} defaultValue="maya@apu.edu.my" />
+        </div>
+        <div className="card" style={{ padding: 20 }}>
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Input — error</div>
+          <input className="input" style={{ borderColor: "var(--error)" }} defaultValue="bad@email" />
+          <div style={{ fontSize: 12, color: "var(--error)", marginTop: 6 }}>That doesn't look like a valid email.</div>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 28 }}>
+        <div>
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Progress</div>
+          <div className="card" style={{ padding: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 13 }}>
+              <span>Lists & Dictionaries</span><strong>62%</strong>
+            </div>
+            <div className="progress-bar"><span style={{ width: "62%" }} /></div>
+          </div>
+        </div>
+        <div>
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Segmented control</div>
+          <div className="seg">
+            <button className="on">All</button>
+            <button>Beginner</button>
+            <button>Advanced</button>
+          </div>
+        </div>
+        <div>
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Toggle</div>
+          <div style={{ display: "flex", gap: 16 }}>
+            <span className="toggle on" />
+            <span className="toggle" />
+          </div>
+        </div>
+      </div>
+
+      <div className="eyebrow" style={{ marginBottom: 10 }}>Code block</div>
+      <pre className="code-block" style={{ margin: 0 }}>
+{`# Lists & Dictionaries · sample
+scores = {"Maya": 92, "Yusra": 88}
+for name, score in scores.items():
+    print(f"{name}: {score}")`}
+      </pre>
+    </div>
+  );
+}
+
+// ===== 3D MOTION APPENDIX =====
+
+const SCENES = [
+  {
+    name: "Coiled Python snake (landing hero)",
+    icon: "🐍",
+    placement: "Landing hero — right column, replaces the marketing illustration.",
+    trigger: "Idle: slow rotation + breathing scale (1.0 ↔ 1.012). On scroll: rotates further and parallaxes camera.",
+    tool: "Three.js (custom)",
+    polys: "~10k (tube + head + ring + 14 sprite glyphs)",
+    format: "Inline JS — coil curve generates TubeGeometry; vertex-colored gradient (Python blue → yellow).",
+    note: "The snake is a parametric coil curve (turns=2.4, radius=1.55, tubeRadius=0.55) tessellated into a TubeGeometry. The head is a separate sphere with two eye spheres parented to it; the head position rides the end of the curve. Floating glyphs are CanvasTexture sprites for cheap text rendering — no font assets to ship.",
+    fallback: "Static rendered poster image (~80KB WebP). Loaded under `prefers-reduced-motion: reduce` and the Lens calm-mode toggle.",
+  },
+  {
+    name: "Progress orb (dashboard)",
+    icon: "🔵",
+    placement: "Welcome banner — right side of the card.",
+    trigger: "Idle: slow Y-axis rotation. On progress change: shader uniform animates smoothly. On milestone: particle burst.",
+    tool: "Three.js (custom shader)",
+    polys: "~5k (icosahedron sub=4 + 3 thin rings + 80 sparkle Points)",
+    format: "ShaderMaterial — simplex-noise vertex displacement + fresnel-rim fragment; vertical fill mask drives the blue→yellow split at `progress`.",
+    note: "The orb is an IcosahedronGeometry with a custom GLSL shader. Vertex shader uses 3D simplex noise (modulated by time) to displace along normals — gives it that 'breathing planet' feel. Fragment shader does a vertical fill (smoothstep on world Y vs uProgress uniform) plus a fresnel rim. Sparkle Points sit on a slightly larger sphere and counter-rotate.",
+    fallback: "SVG conic-gradient ring with percentage in the middle. Already implemented as `<OrbPoster>`.",
+  },
+  {
+    name: "Score gauge (quiz results)",
+    icon: "🎯",
+    placement: "Quiz results page — right column, side card.",
+    trigger: "On page load: arc fills from 0 to target percentage over ~1.2s. Tip sphere pulses subtly.",
+    tool: "Three.js (custom)",
+    polys: "~2.5k (TorusGeometry arc, dynamically rebuilt each frame as fill changes)",
+    format: "Animated TorusGeometry — recreated each frame from 0 to current angle. Ticks are LineSegments.",
+    note: "Cheap and reliable. The arc geometry is rebuilt every animation tick using `new THREE.TorusGeometry(1.3, 0.13, 18, 80, currentAngle)`. The tip sphere position is computed in polar coords. Ticks are tiny line segments around the perimeter. The numerical % is plain HTML overlaid on top — no 3D text needed.",
+    fallback: "Large numeric % with surrounding ring (CSS conic-gradient). Under calm mode.",
+  },
+  {
+    name: "Learning journey (progress page)",
+    icon: "✨",
+    placement: "Progress page — full-width 3D map at top, 360 px tall.",
+    trigger: "Idle: subtle parallax. On hover over a node: scales 1.18 and shows tooltip. On click: dispatches setFocus().",
+    tool: "Three.js (custom)",
+    polys: "~8k (12 spheres + halo rings + path line + 120 star points)",
+    format: "Spheres laid out along a CatmullRomCurve3 through 12 anchor points. Three states: done (Python blue + emissive), current (yellow + larger + emissive), locked (dim, floats slightly).",
+    note: "Catmull-Rom curve connects 12 anchor points in 3D. Done nodes get a billboarded RingGeometry halo. Locked nodes drift slightly on Y. Raycaster on the mount handles hover and click. Background stars are a single Points object with 120 random positions.",
+    fallback: "Static SVG path with circular nodes. Same color logic.",
+  },
+  {
+    name: "3D module-card tilt",
+    icon: "📦",
+    placement: "All module cards (Landing & Modules list).",
+    trigger: "Cursor-tracked perspective tilt (max 8°) while the cursor is over the card.",
+    tool: "CSS 3D transform (no WebGL)",
+    polys: "n/a",
+    format: "`perspective(900px) rotateY(x) rotateX(y)` computed on mousemove.",
+    note: "Pure CSS. Zero WebGL cost. Keep the tilt subtle so a row of 6 cards doesn't feel like a kaleidoscope — max 8° is enough for the parallax to register.",
+    fallback: "Identity transform. The card still has hover lift (`translateY(-2px) + shadow grow`).",
+  },
+  {
+    name: "Quiz feedback burst",
+    icon: "💥",
+    placement: "Quiz page — overlay on the options column after Submit.",
+    trigger: "On answer submit. Correct = yellow particle burst; wrong = red flash + soft shake (motion-safe).",
+    tool: "Three.js (Points particles)",
+    polys: "80 points (single BufferGeometry, updated each frame).",
+    format: "Re-initializes 80 particles with random radial velocities; gravity-style decay over ~1 second.",
+    note: "One Points object with a static-sized BufferGeometry; we reinitialize positions and life values on each trigger. Color flips between yellow and red. Particle pointerEvents:none so it never blocks the next button.",
+    fallback: "Pure CSS keyframe — a single border-radius:50% div scales up while fading. Same color logic.",
+  },
+  {
+    name: "Badge medallion (results & profile)",
+    icon: "🏅",
+    placement: "Quiz results · badge unlock card. Profile · badge collection on tap.",
+    trigger: "On badge unlock — full-screen modal: dolly + bloom + confetti. Otherwise idle rotation.",
+    tool: "Three.js (custom)",
+    polys: "~3k (cylinder disc + torus ring + extruded star)",
+    format: "Cylinder disc + torus ring + ExtrudeGeometry star, all metallic Standard material.",
+    note: "Disc is the base, ring is the outer rim, star is a Shape extruded with a slight bevel. Materials are MeshStandardMaterial with roughness 0.2–0.3 and metalness 0.5–0.6 — gives a believable gold/silver feel under our two-point lighting.",
+    fallback: "Flat SVG medallion (svg star + ring). Used under calm-mode and on low-end mobile.",
+  },
+];
+
+function MotionAppendix() {
+  return (
+    <div className="ab-content">
+      <div className="eyebrow" style={{ marginBottom: 6 }}>Appendix · 3D motion</div>
+      <h2 className="h1" style={{ marginBottom: 8 }}>3D motion — implementation guide for the dev team.</h2>
+      <p style={{ color: "var(--muted)", maxWidth: 720, marginBottom: 22 }}>
+        Seven distinct 3D set-pieces across the product. All are real Three.js (r128 UMD global), shipped lazy-loaded with static poster fallbacks under <code style={{ fontFamily: "var(--font-mono)", background: "var(--bg-sunk)", padding: "1px 5px", borderRadius: 4 }}>prefers-reduced-motion</code> and Lens · calm mode. Total budget across all pages ≤ 50k polygons, 60 fps target on a mid-range laptop, 30 fps on mobile.
+      </p>
+
+      <div style={{ padding: "16px 20px", background: "var(--ink)", color: "var(--bg)", borderRadius: 12, marginBottom: 24, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24, fontSize: 12 }}>
+        <Stat n="≤ 50k" l="polygons per page" />
+        <Stat n="60 fps" l="mid-range laptop" />
+        <Stat n="30 fps" l="mobile fallback" />
+        <Stat n="prefers-reduced-motion" l="universal calm-mode escape" />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        {SCENES.map((s, i) => (
+          <div key={i} className="scene-card">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 8, background: "var(--py-yellow)", display: "grid", placeItems: "center", fontSize: 18 }}>{s.icon}</div>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 600 }}>{s.name}</div>
+                  <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 1 }}>{s.tool}</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.55, marginBottom: 12 }}>
+              <strong>Placement:</strong> {s.placement}<br/>
+              <strong>Trigger:</strong> {s.trigger}
+            </div>
+
+            <div className="meta">
+              <div className="row"><span>Polys</span><b>{s.polys}</b></div>
+              <div className="row"><span>Format</span><b style={{ fontFamily: "var(--font-sans)", fontSize: 11.5, color: "var(--ink-2)" }}>{s.format}</b></div>
+            </div>
+
+            <div style={{ marginTop: 12, padding: 12, background: "var(--bg-sunk)", borderRadius: 8, fontSize: 12, lineHeight: 1.55, color: "var(--ink-2)" }}>
+              {s.note}
+            </div>
+
+            <div style={{ marginTop: 10, padding: "10px 12px", borderLeft: "3px solid var(--success)", background: "color-mix(in oklab, var(--success) 8%, var(--surface))", fontSize: 11.5, color: "var(--ink-2)" }}>
+              <strong style={{ color: "#047857" }}>Calm-mode fallback:</strong> {s.fallback}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const Stat = ({ n, l }) => (
+  <div>
+    <div style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.02em", color: "var(--py-yellow)", fontFamily: "var(--font-mono)" }}>{n}</div>
+    <div style={{ color: "#C2C5CC", fontSize: 12, marginTop: 2 }}>{l}</div>
+  </div>
+);
+
+// ===== LENS DEEP-DIVE =====
+
+const LENS_FEATURES = [
+  { ic: "📖", t: "Dyslexia-friendly font", body: "Swaps all UI to Atkinson Hyperlegible. Wider letterforms, distinguishable similar glyphs (b/d/p/q, Il1), no kerning surprises. Toggle persists across sessions in localStorage and on the user's account.", impl: "data-lens-font='dyslexia' on <html>; CSS sets --font-sans." },
+  { ic: "🌗", t: "High contrast", body: "Pure black/white ink, no semi-transparent shadows, thicker borders. Works against both light and dark base themes.", impl: "data-lens-contrast='high' adjusts --ink, --muted, --border tokens." },
+  { ic: "👁", t: "Color-blind palettes", body: "Three remappings: deuteranopia, protanopia, tritanopia. Each remaps Python blue + yellow + semantic colors to a CB-safe pairing.", impl: "data-lens-cb='deutan|protan|tritan' overrides --py-blue, --py-yellow, --success, --error." },
+  { ic: "🌊", t: "Calm motion mode", body: "Every 3D scene swaps to a static poster image. CSS animations and transitions drop to ~0ms. Honors prefers-reduced-motion at the OS level too.", impl: "data-lens-motion='calm' + animation-duration: 0.001ms !important on all elements." },
+  { ic: "🎯", t: "Focus magnifier", body: "A 3px yellow outline + soft shadow tracks the currently focused element. 2× lens (optional toggle) for users who need additional zoom on the focused region.", impl: "Listen for focusin/focusout, position an absolute box over the rect." },
+  { ic: "⌨️", t: "Keyboard hints on focus", body: "Show a small chip near the focused element with its keyboard shortcut (Enter/Space, arrow keys to move, etc.).", impl: "data-shortcut='Enter' attribute; conditional ::after rendering." },
+  { ic: "🎙", t: "Audio narration", body: "Every lesson has a pre-recorded narration with adjustable speed (0.75 / 1 / 1.25 / 1.5×). Scrubber sticks to the top while reading. The transcript replaces the visual content under screen readers.", impl: "Audio element + UI controls. Files served from CDN, lazy-loaded only when narration toggle is on." },
+  { ic: "🤟", t: "ASL avatar (video lessons)", body: "An ASL avatar appears in the lesson sidebar for any video. Avatar is pre-recorded; user can resize and reposition.", impl: "Conditionally rendered <video> in the lesson side rail. Source files per lesson." },
+  { ic: "📝", t: "Captions on by default", body: "All video and audio content ships with captions on. User can size them or toggle in-line.", impl: "WebVTT files paired with each media asset." },
+  { ic: "🔍", t: "Verbose code reader", body: "Adds a plain-English paragraph above every code block — what the code does, what to expect when run. Aimed at screen-reader users and visual learners both.", impl: "Each code block carries an `altText` prop; rendered conditionally above the code." },
+  { ic: "📏", t: "Touch target size", body: "M (default 36 px) / L (48 px) / XL (56 px). XL is roomy enough for switch users and motor-impairment users; affects buttons and links app-wide.", impl: "data-lens-targets adjusts min-height on button + a.btn." },
+];
+
+function LensSpec() {
+  return (
+    <div className="ab-content">
+      <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "5px 11px", background: "rgba(255,212,59,0.18)", color: "var(--py-blue-d)", borderRadius: 999, fontSize: 12, fontWeight: 600, marginBottom: 14 }}>
+        ⭐ Special accessibility feature
+      </div>
+      <h2 className="h1" style={{ marginBottom: 8 }}>Lens — the accessibility companion.</h2>
+      <p style={{ color: "var(--muted)", maxWidth: 740, marginBottom: 28, fontSize: 16, lineHeight: 1.55 }}>
+        One button, persistent on every screen. Inside: every setting needed to make CodexPy work for learners with vision differences, motor impairment, dyslexia, attention concerns, hearing differences, and cognitive load preferences. Settings sync to the account and survive across devices.
+      </p>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }}>
+        {LENS_FEATURES.map((f, i) => (
+          <div key={i} className="card" style={{ padding: 18 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: "var(--bg-sunk)", display: "grid", placeItems: "center", fontSize: 18 }}>{f.ic}</div>
+              <div style={{ fontSize: 15, fontWeight: 600 }}>{f.t}</div>
+            </div>
+            <div style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.55 }}>{f.body}</div>
+            <div style={{ marginTop: 10, padding: "8px 12px", background: "#0F1729", color: "#88D498", fontFamily: "var(--font-mono)", fontSize: 11, borderRadius: 6 }}>{f.impl}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ marginTop: 28, padding: "20px 24px", background: "var(--ink)", color: "var(--bg)", borderRadius: 14 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".12em", color: "var(--py-yellow)", marginBottom: 8 }}>Discoverability</div>
+        <div style={{ fontSize: 15, lineHeight: 1.55, maxWidth: 720 }}>
+          Lens lives behind a single FAB (bottom-right) on every screen. The landing page highlights it explicitly ("New: Lens — accessibility tools built into every screen"). On first session, a one-time tooltip points to it. The Reports page exposes per-feature usage so administrators see whether learners are actually finding it.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ===== TRACEABILITY MATRIX =====
+
+const TRACE = [
+  { use: "UC-G1 · Guest views landing", screen: "Landing", status: "designed" },
+  { use: "UC-G2 · Guest registers", screen: "Register (Login tab → Register)", status: "designed" },
+  { use: "UC-U1 · User logs in", screen: "Login", status: "designed" },
+  { use: "UC-U2 · User logs out", screen: "Sidebar → Log out", status: "designed" },
+  { use: "UC-U3 · View modules", screen: "All Modules", status: "designed" },
+  { use: "UC-U4 · View module detail", screen: "Module Detail (Lists & Dictionaries)", status: "designed" },
+  { use: "UC-U5 · Take quiz", screen: "Quiz · 10 questions, 2 kinds", status: "designed" },
+  { use: "UC-U6 · View scores", screen: "Quiz Results", status: "designed" },
+  { use: "UC-U7 · View learning progress", screen: "Learning Progress · 3D journey", status: "designed" },
+  { use: "UC-U8 · View profile", screen: "Profile", status: "designed" },
+  { use: "UC-U9 · Update profile", screen: "Profile · Edit mode", status: "designed" },
+  { use: "UC-A1 · Admin logs in", screen: "Login (admin role)", status: "designed" },
+  { use: "UC-A2 · Manage users (view/edit/delete)", screen: "Admin · Manage Users + modal", status: "designed" },
+  { use: "UC-A3 · Manage modules (CRUD)", screen: "Admin · Manage Modules + modal", status: "designed" },
+  { use: "UC-A4 · Manage quizzes (CRUD)", screen: "Admin · Manage Quizzes (question editor)", status: "designed" },
+  { use: "UC-A5 · System overview", screen: "Admin · Dashboard", status: "designed" },
+  { use: "UC-A6 · View user progress (read-only)", screen: "Manage Users → Eye icon", status: "designed" },
+  { use: "★ Special · Accessibility companion", screen: "Lens (every screen) + Lens spec page", status: "designed" },
+  { use: "📊 Resolved · Reports", screen: "Admin · Reports — analytics for cohorts, content, Lens usage", status: "designed (NEW)" },
+  { use: "💬 Recommendation · Forum", screen: "Not implemented — recommend OMIT", status: "documented" },
+  { use: "🏆 Cert/badge reward (Objective 3)", screen: "Profile, Progress, Dashboard, Quiz Results", status: "designed" },
+];
+
+function Traceability() {
+  return (
+    <div className="ab-content">
+      <div className="eyebrow" style={{ marginBottom: 6 }}>Traceability</div>
+      <h2 className="h1" style={{ marginBottom: 8 }}>Use case ↔ screen mapping</h2>
+      <p style={{ color: "var(--muted)", maxWidth: 720, marginBottom: 20 }}>
+        Every screen maps to a use case from the proposal. Open issues from Section 8 of the brief have been resolved here.
+      </p>
+      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead style={{ background: "var(--bg-sunk)", fontSize: 11, textTransform: "uppercase", letterSpacing: ".06em", color: "var(--muted)" }}>
+            <tr>
+              <th style={{ padding: "10px 16px", textAlign: "left", width: "33%" }}>Use case</th>
+              <th style={{ padding: "10px 16px", textAlign: "left" }}>Screen</th>
+              <th style={{ padding: "10px 16px", textAlign: "left", width: 140 }}>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {TRACE.map((r, i) => (
+              <tr key={i} style={{ borderTop: "1px solid var(--hairline)", background: i % 2 ? "var(--surface)" : "var(--surface-2)" }}>
+                <td style={{ padding: "10px 16px" }}>{r.use}</td>
+                <td style={{ padding: "10px 16px", color: "var(--ink-2)" }}>{r.screen}</td>
+                <td style={{ padding: "10px 16px" }}>
+                  <span className="tag" style={{
+                    background: r.status === "documented" ? "color-mix(in oklab, var(--warning) 18%, var(--surface))" : "color-mix(in oklab, var(--success) 16%, var(--surface))",
+                    color: r.status === "documented" ? "#92400E" : "#047857",
+                  }}>{r.status}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={{ marginTop: 24, padding: "16px 20px", borderRadius: 12, background: "color-mix(in oklab, var(--info) 10%, var(--surface))", borderLeft: "3px solid var(--info)" }}>
+        <div style={{ fontWeight: 600, marginBottom: 6 }}>Open issue resolutions</div>
+        <div style={{ fontSize: 13.5, lineHeight: 1.6, color: "var(--ink-2)" }}>
+          <strong>Reports</strong> — designed (new admin analytics page covering cohorts, content health, item analysis, and Lens accessibility usage).<br/>
+          <strong>Forum</strong> — recommend omitting. The use-case diagrams and workload matrix don't include it; cutting it scopes the project to a deliverable size.<br/>
+          <strong>Delete affordances</strong> — present everywhere: Manage Users (row action + modal), Manage Modules (row action + modal), Manage Quizzes (per-question delete in editor). All destructive actions use the red destructive button style.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ===== Mobile previews via iframe =====
+
+function MobileFrame({ src, label }) {
+  return (
+    <div className="phone">
+      <div className="notch" />
+      <div className="screen">
+        <iframe className="embed" src={src} title={label}
+          style={{ transform: "scale(0.34)", transformOrigin: "top left", width: "294%", height: "294%", border: 0 }} />
+      </div>
+    </div>
+  );
+}
+
+function MobilePreviews() {
+  return (
+    <div className="ab-content" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div className="eyebrow" style={{ marginBottom: 6 }}>Mobile · live</div>
+      <h2 className="h1" style={{ marginBottom: 8 }}>Four key screens at 390 px width.</h2>
+      <p style={{ color: "var(--muted)", maxWidth: 720, marginBottom: 20 }}>
+        These iframes scale the live prototype into phone frames so you can verify layout under tight widths. The full hi-fi mobile pass refines the sidebar into a bottom nav and collapses tablet/desktop grids — but the typography, color, and component vocabulary stay identical.
+      </p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, flex: 1 }}>
+        <MobileFrame src="prototype.html#landing" label="Landing" />
+        <MobileFrame src="prototype.html#dashboard" label="Dashboard" />
+        <MobileFrame src="prototype.html#module" label="Module detail" />
+        <MobileFrame src="prototype.html#progress" label="Progress" />
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginTop: 10, fontSize: 12, color: "var(--muted)", textAlign: "center" }}>
+        <div>Landing</div><div>Dashboard</div><div>Module detail</div><div>Progress</div>
+      </div>
+    </div>
+  );
+}
+
+// ===== Embedded full pages =====
+
+function EmbedFrame({ src }) {
+  return <iframe className="embed" src={src} style={{ width: "100%", height: "100%", border: 0, borderRadius: 8 }} />;
+}
+
+// ===== Canvas root =====
+
+const App = () => (
+  <window.DesignCanvas title="CodexPy · Hi-fi design canvas" subtitle="System, motion appendix, traceability, and supporting screens — for the flagship prototype open prototype.html">
+    <window.DCSection id="system" title="Design system" subtitle="The foundations — colors, type, space, components">
+      <window.DCArtboard id="colors" label="Colors" width={1280} height={780}><div className="ab"><StyleGuideColors /></div></window.DCArtboard>
+      <window.DCArtboard id="type" label="Type" width={1280} height={780}><div className="ab"><StyleGuideType /></div></window.DCArtboard>
+      <window.DCArtboard id="space" label="Space, radius, shadow" width={1280} height={780}><div className="ab"><StyleGuideSpace /></div></window.DCArtboard>
+      <window.DCArtboard id="components" label="Component library" width={1280} height={780}><div className="ab"><ComponentLibrary /></div></window.DCArtboard>
+    </window.DCSection>
+
+    <window.DCSection id="lens" title="Lens — accessibility companion" subtitle="The special feature — 11 toggles + a spec for the dev team">
+      <window.DCArtboard id="lens-spec" label="Lens deep-dive" width={1280} height={1080}><div className="ab"><LensSpec /></div></window.DCArtboard>
+    </window.DCSection>
+
+    <window.DCSection id="motion" title="3D motion appendix" subtitle="Per-scene implementation notes for the dev team">
+      <window.DCArtboard id="motion-spec" label="Seven 3D scenes" width={1400} height={1480}><div className="ab"><MotionAppendix /></div></window.DCArtboard>
+    </window.DCSection>
+
+    <window.DCSection id="supporting" title="Supporting screens" subtitle="Login / Register, Quiz results, Profile — pulled live from the prototype">
+      <window.DCArtboard id="login" label="Login / Register" width={1280} height={760}><div className="ab"><EmbedFrame src="prototype.html#login" /></div></window.DCArtboard>
+      <window.DCArtboard id="results" label="Quiz results · with 3D gauge" width={1280} height={760}><div className="ab"><EmbedFrame src="prototype.html#results" /></div></window.DCArtboard>
+      <window.DCArtboard id="profile" label="Profile" width={1280} height={760}><div className="ab"><EmbedFrame src="prototype.html#profile" /></div></window.DCArtboard>
+      <window.DCArtboard id="admin-modules" label="Admin · Manage modules" width={1280} height={760}><div className="ab"><EmbedFrame src="prototype.html#admin-modules" /></div></window.DCArtboard>
+      <window.DCArtboard id="admin-quizzes" label="Admin · Manage quizzes" width={1280} height={760}><div className="ab"><EmbedFrame src="prototype.html#admin-quizzes" /></div></window.DCArtboard>
+      <window.DCArtboard id="admin-users" label="Admin · Manage users" width={1280} height={760}><div className="ab"><EmbedFrame src="prototype.html#admin-users" /></div></window.DCArtboard>
+    </window.DCSection>
+
+    <window.DCSection id="mobile" title="Mobile preview" subtitle="The live prototype scaled into phone frames">
+      <window.DCArtboard id="mobile-strip" label="Four key screens at 390 px" width={1280} height={720}><div className="ab"><MobilePreviews /></div></window.DCArtboard>
+    </window.DCSection>
+
+    <window.DCSection id="trace" title="Traceability" subtitle="Use case mapping + open issue resolutions from the proposal">
+      <window.DCArtboard id="trace-matrix" label="UC ↔ screen matrix" width={1280} height={900}><div className="ab"><Traceability /></div></window.DCArtboard>
+    </window.DCSection>
+  </window.DesignCanvas>
+);
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
